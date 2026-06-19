@@ -101,6 +101,56 @@ create table if not exists public.evaluations (
 );
 ```
 
+### Optional profile demographics
+
+The dashboard can show broad user demographic and locale analytics without collecting GPS or precise location. Add these columns only if you want the related filters and charts populated:
+
+```sql
+alter table public.profiles
+add column if not exists gender text,
+add column if not exists app_language text,
+add column if not exists device_locale text,
+add column if not exists country text,
+add column if not exists province text,
+add column if not exists city text;
+
+alter table public.profiles
+add constraint profiles_gender_check
+check (gender in ('male', 'female', 'prefer_not_to_say') or gender is null);
+```
+
+### Optional report watchlist
+
+Use this table if admins need a shared list of reports that require follow-up. The dashboard only reads this table; it does not create or delete rows automatically.
+
+```sql
+create table if not exists public.report_watchlist (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid not null,
+  admin_user_id uuid references auth.users(id) on delete set null,
+  note text,
+  created_at timestamptz not null default now()
+);
+```
+
+### Optional live user activity
+
+Use this table if you want the admin dashboard to show users active now, active in the last 30 minutes, active today, and inactive for 7 days. This stores broad activity only; do not add GPS, latitude, or longitude fields for this dashboard feature.
+
+```sql
+create table if not exists public.user_activity (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  last_seen_at timestamptz not null default now(),
+  current_page text,
+  platform text,
+  app_version text,
+  device_locale text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_activity enable row level security;
+```
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
